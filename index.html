@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script>try{var t=localStorage.getItem('wedding-bar-planner-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <style>
 /* Base reset (mirrors the artifact host's skeleton so the page renders identically when self-hosted) */
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -48,6 +49,8 @@ img{max-width:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:28px 72px}
 header{display:grid;gap:6px;margin-bottom:22px}
+.head-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.head-row .btn{flex:none;font-size:12.5px;padding:5px 10px}
 .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,4.5vw,2.9rem);line-height:1.05;margin:0;text-wrap:balance}
 header p{margin:0;color:var(--muted);max-width:68ch}
@@ -134,7 +137,7 @@ tr.cat td{background:var(--sunk);font-size:11.5px;letter-spacing:.08em;text-tran
 .addon .t{font-weight:600;font-size:14px}
 .addon .u{font-size:12px;color:var(--muted)}
 .addon.on{border-color:var(--ok)}
-.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
 .empty{font-size:13px;color:var(--muted);margin:0}
 .src{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
 .src a{color:var(--accent)}
@@ -155,7 +158,7 @@ details.collapse[open] summary{margin-bottom:14px}
     --wine:#000000; --beer:#000000; --spirit:#000000;
     --ok:#000000; --ok-soft:#FFFFFF; --warn:#000000; --warn-soft:#FFFFFF; color-scheme:light;
   }
-  aside.controls,#mixwrap,#copy,#copy-fallback,header p,.dot,
+  aside.controls,#mixwrap,#copy,#copy-fallback,#theme,header p,.dot,
   section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
   .wrap{max-width:none;padding:0}
   .layout{display:block}
@@ -172,7 +175,10 @@ details.collapse[open] summary{margin-bottom:14px}
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Reception bar · self-purchased bottles</div>
+    <div class="head-row">
+      <div class="eyebrow">Reception bar · self-purchased bottles</div>
+      <button class="btn" id="theme" type="button">Dark mode</button>
+    </div>
     <h1>Wedding Bar Planner</h1>
     <p>Dial in the crowd, the clock, and the drink mix. Bottle counts, mixers, and the cocktail menu update as you go. Starting values: 87 guests, a moderate-to-low drinking crowd, 2 oz liquor pours, 6 oz wine pours.</p>
   </header>
@@ -876,7 +882,19 @@ $('copy').addEventListener('click', () => {
 
 $('reset').addEventListener('click', () => { S = clone(DEF); syncInputs(); update(); save(); });
 
-buildGroups(); bindInputs(); syncInputs(); update();
+/* theme toggle: follows the system until a choice is made, then remembers it */
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+const curTheme = () => document.documentElement.dataset.theme || (mq.matches ? 'dark' : 'light');
+const syncTheme = () => { $('theme').textContent = curTheme() === 'dark' ? 'Light mode' : 'Dark mode'; };
+$('theme').addEventListener('click', () => {
+  const t = curTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = t;
+  try{ localStorage.setItem('wedding-bar-planner-theme', t); }catch(e){}
+  syncTheme();
+});
+mq.addEventListener('change', syncTheme);
+
+buildGroups(); bindInputs(); syncInputs(); update(); syncTheme();
 })();
 </script>
 </body>
