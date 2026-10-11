@@ -63,6 +63,7 @@ h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 .layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:920px){.layout{grid-template-columns:minmax(0,1fr)}}
 .layout.rail-hidden{grid-template-columns:minmax(0,1fr)}
+#rail-float{position:fixed;z-index:5;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);border-color:var(--accent)}
 
 /* Controls */
 aside.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
@@ -163,7 +164,7 @@ details.collapse[open] summary{margin-bottom:14px}
     --wine:#000000; --beer:#000000; --spirit:#000000;
     --ok:#000000; --ok-soft:#FFFFFF; --warn:#000000; --warn-soft:#FFFFFF; color-scheme:light;
   }
-  aside.controls,#mixwrap,#copy,#copy-fallback,.head-actions,header p,.dot,
+  aside.controls,#mixwrap,#copy,#copy-fallback,.head-actions,#rail-float,header p,.dot,
   section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
   .wrap{max-width:none;padding:0}
   .layout{display:block}
@@ -383,6 +384,7 @@ details.collapse[open] summary{margin-bottom:14px}
     </main>
   </div>
 </div>
+<button class="btn" id="rail-float" type="button" aria-controls="controls" aria-expanded="true" hidden>Hide controls</button>
 
 <script>
 (function(){
@@ -904,14 +906,30 @@ mq.addEventListener('change', syncTheme);
 function setRail(hidden){
   $('controls').hidden = hidden;
   document.querySelector('.layout').classList.toggle('rail-hidden', hidden);
-  $('rail').textContent = hidden ? 'Show controls' : 'Hide controls';
-  $('rail').setAttribute('aria-expanded', String(!hidden));
+  ['rail','rail-float'].forEach(id => {
+    $(id).textContent = hidden ? 'Show controls' : 'Hide controls';
+    $(id).setAttribute('aria-expanded', String(!hidden));
+  });
 }
-$('rail').addEventListener('click', () => {
+function toggleRail(){
   const hidden = !$('controls').hidden;
+  const stacked = window.matchMedia('(max-width:920px)').matches;
+  const main = document.querySelector('main');
+  const before = main.getBoundingClientRect().top;
   setRail(hidden);
+  /* stacked layout: showing jumps to the controls, hiding keeps the results where they were */
+  if(stacked){
+    if(hidden) window.scrollBy(0, main.getBoundingClientRect().top - before);
+    else $('controls').scrollIntoView({block:'start'});
+  }
   try{ localStorage.setItem('wedding-bar-planner-rail', hidden ? 'hidden' : 'shown'); }catch(e){}
-});
+}
+$('rail').addEventListener('click', toggleRail);
+$('rail-float').addEventListener('click', toggleRail);
+/* the floating copy of the button appears once the header buttons scroll out of view */
+if('IntersectionObserver' in window){
+  new IntersectionObserver(es => { $('rail-float').hidden = es[0].isIntersecting; }).observe(document.querySelector('.head-actions'));
+}
 try{ if(localStorage.getItem('wedding-bar-planner-rail') === 'hidden') setRail(true); }catch(e){}
 
 buildGroups(); bindInputs(); syncInputs(); update(); syncTheme();
