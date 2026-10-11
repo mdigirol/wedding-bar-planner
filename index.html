@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive wedding bar calculator: dial in guests, drinker mix, bar hours, pours, and drink mix to get a liquor shopping list and a cocktail menu.">
+<title>Wedding Bar Planner</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wedding Bar Planner">
+<meta property="og:description" content="Interactive wedding bar calculator: dial in guests, drinker mix, bar hours, pours, and drink mix to get a liquor shopping list and a cocktail menu.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Wedding Bar Planner">
+<meta name="twitter:description" content="Interactive wedding bar calculator: dial in guests, drinker mix, bar hours, pours, and drink mix to get a liquor shopping list and a cocktail menu.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23245B70' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 7h22c0 6.5-4.5 11-11 11S5 13.5 5 7z'/%3E%3Cpath d='M16 18v8M10 27h12'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Base reset (mirrors the artifact host's skeleton so the page renders identically when self-hosted) */
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: a sticky rail of dials on the left drives live results on the right (stacks on phones). */
+:root{
+  --bg:#EDF0F1; --surface:#FFFFFF; --sunk:#E4E9EB; --ink:#17222A; --muted:#55656F; --line:#D0D8DC;
+  --accent:#245B70; --accent-ink:#FFFFFF;
+  --wine:#7B2D3B; --beer:#B07A18; --spirit:#2E6476;
+  --ok:#2D6A4C; --ok-soft:#DDEEE4; --warn:#9C4A16; --warn-soft:#F6E3D5;
+  --display:"Bodoni Moda","Didot",Georgia,serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1417; --surface:#151D22; --sunk:#1D272D; --ink:#E4EBEE; --muted:#93A4AD; --line:#2A363D;
+  --accent:#7FBFD4; --accent-ink:#0E1417;
+  --wine:#D07D8B; --beer:#E2B456; --spirit:#79B2C5;
+  --ok:#7BC9A0; --ok-soft:#1C3328; --warn:#EBA27A; --warn-soft:#3A2519; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1417; --surface:#151D22; --sunk:#1D272D; --ink:#E4EBEE; --muted:#93A4AD; --line:#2A363D;
+  --accent:#7FBFD4; --accent-ink:#0E1417;
+  --wine:#D07D8B; --beer:#E2B456; --spirit:#79B2C5;
+  --ok:#7BC9A0; --ok-soft:#1C3328; --warn:#EBA27A; --warn-soft:#3A2519; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:28px 72px}
+header{display:grid;gap:6px;margin-bottom:22px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,4.5vw,2.9rem);line-height:1.05;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:68ch}
+h2{font-family:var(--display);font-weight:700;font-size:1.55rem;margin:0;line-height:1.15}
+h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:920px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+/* Controls */
+aside.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
+@media (max-width:920px){aside.controls{position:static;max-height:none}}
+.sec{display:grid;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0;padding-bottom:0}
+.ctl{display:grid;gap:2px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px}
+.ctl-head output,.val{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ctl-head .sub{color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 0}
+input[type=number],select{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mini{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.note{font-size:12px;color:var(--muted);margin:0}
+.btn{font:inherit;font-size:13.5px;font-weight:600;border-radius:7px;padding:8px 12px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sum-tag{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+
+/* Results */
+main{display:grid;gap:34px;min-width:0}
+.block{display:grid;gap:14px;min-width:0}
+.block-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:2px}
+.tile .k{font-size:12px;color:var(--muted)}
+.tile .v{font-family:var(--display);font-weight:700;font-size:2rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12px;color:var(--muted)}
+.math{font-family:var(--mono);font-size:12.5px;color:var(--muted);background:var(--sunk);border-radius:8px;padding:10px 12px;overflow-x:auto;white-space:nowrap}
+.bar{display:flex;height:30px;border-radius:7px;overflow:hidden;background:var(--sunk)}
+.bar span{display:flex;align-items:center;padding-inline:8px;font-size:12px;font-weight:600;color:var(--bg);white-space:nowrap;overflow:hidden;min-width:0;transition:flex-basis .25s}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td .serves{display:block;font-size:12px;color:var(--muted)}
+tr.cat td{background:var(--sunk);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-block:6px}
+.buy{font-weight:600;white-space:nowrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:0}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* Menu */
+.house{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.hcard{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;padding:14px;display:grid;gap:6px}
+.hcard .nm{font-family:var(--display);font-weight:700;font-size:1.25rem;line-height:1.15}
+.hcard .spec{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.hcard .cnt{font-size:12.5px}
+.counts{display:flex;flex-wrap:wrap;gap:8px}
+.counts .pill{font-size:12.5px;padding:3px 10px}
+.pill.neutral{background:var(--sunk);color:var(--ink)}
+.group{display:grid;gap:8px}
+.drinks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.drink{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:grid;gap:5px;align-content:start}
+.drink .nm{font-weight:600;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--sunk);color:var(--ink)}
+.chip.miss{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.chip.add{background:var(--ok-soft);color:var(--ok);font-weight:600}
+.extra{font-size:12px;color:var(--muted)}
+.ing{font-size:12.5px;color:var(--ink);line-height:1.4}
+.ing-k{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
+.addons{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.addon{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer}
+.addon input{accent-color:var(--ok);width:16px;height:16px;margin-top:3px;flex:none}
+.addon .t{font-weight:600;font-size:14px}
+.addon .u{font-size:12px;color:var(--muted)}
+.addon.on{border-color:var(--ok)}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.empty{font-size:13px;color:var(--muted);margin:0}
+.src{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+.src a{color:var(--accent)}
+ul.plain{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+details.collapse{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+details.collapse summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.collapse summary::-webkit-details-marker{display:none}
+details.collapse summary > span:first-child{display:grid;gap:2px}
+details.collapse .chev{font-family:var(--mono);font-size:20px;color:var(--accent);width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;flex:none}
+details.collapse[open] .chev{transform:rotate(45deg)}
+details.collapse[open] summary{margin-bottom:14px}
+
+/* Print: liquor inventory and menu only, black on white */
+@media print{
+  :root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+    --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#FFFFFF; --ink:#000000; --muted:#000000; --line:#999999;
+    --accent:#000000; --accent-ink:#FFFFFF;
+    --wine:#000000; --beer:#000000; --spirit:#000000;
+    --ok:#000000; --ok-soft:#FFFFFF; --warn:#000000; --warn-soft:#FFFFFF; color-scheme:light;
+  }
+  aside.controls,#mixwrap,#copy,#copy-fallback,header p,.dot,
+  section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .layout{display:block}
+  main{gap:20px}
+  .tbl{overflow:visible}
+  table{min-width:0}
+  .pill,.chip{border:1px solid var(--line)}
+  .chip.miss{border-style:dashed}
+  tr,.hcard,.drink,.addon{break-inside:avoid}
+  h2,h3{break-after:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Reception bar · self-purchased bottles</div>
+    <h1>Wedding Bar Planner</h1>
+    <p>Dial in the crowd, the clock, and the drink mix. Bottle counts, mixers, and the cocktail menu update as you go. Starting values: 87 guests, a moderate-to-low drinking crowd, 2 oz liquor pours, 6 oz wine pours.</p>
+  </header>
+
+  <div class="layout">
+    <aside class="controls" aria-label="Planning dials">
+      <div class="sec">
+        <h3>Guests</h3>
+        <div class="row2">
+          <label class="mini">Total guests<input type="number" id="guests" data-k="guests" min="0" max="500" step="1"></label>
+          <label class="mini">Non-drinkers / under 21<input type="number" id="nonDrinkers" data-k="nonDrinkers" min="0" max="500" step="1"></label>
+        </div>
+        <div class="ctl-head"><span>Drinking guests</span><span class="val" id="o-drinkers"></span></div>
+      </div>
+
+      <div class="sec">
+        <h3>Drinker mix</h3>
+        <div id="g-tiers" class="group"></div>
+        <div class="mini">Drinks per hour by type
+          <div class="row3">
+            <label class="mini">Light<input type="number" id="rate-low" data-k="rates.low" min="0" max="4" step="0.25"></label>
+            <label class="mini">Moderate<input type="number" id="rate-med" data-k="rates.med" min="0" max="4" step="0.25"></label>
+            <label class="mini">Heavy<input type="number" id="rate-high" data-k="rates.high" min="0" max="4" step="0.25"></label>
+          </div>
+        </div>
+        <div class="ctl-head"><span>Weighted average</span><span class="val" id="o-rate"></span></div>
+      </div>
+
+      <div class="sec">
+        <h3>Time</h3>
+        <div class="ctl">
+          <div class="ctl-head"><label for="hours">Bar hours (incl. cocktail hour)</label><output data-for="hours"></output></div>
+          <input type="range" id="hours" data-k="hours" min="2" max="7" step="0.5">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="firstHour">First-hour surge</label><output data-for="firstHour"></output></div>
+          <input type="range" id="firstHour" data-k="firstHour" min="1" max="2" step="0.25">
+          <p class="note">1.0× is flat. 2.0× matches the "2 drinks in hour one, then 1 per hour" rule.</p>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Pours</h3>
+        <div class="ctl">
+          <div class="ctl-head"><label for="pour">Liquor pour (base spirit)</label><output data-for="pour"></output></div>
+          <input type="range" id="pour" data-k="pour" min="1.25" max="2.5" step="0.25">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="winePour">Wine pour</label><output data-for="winePour"></output></div>
+          <input type="range" id="winePour" data-k="winePour" min="4" max="8" step="0.5">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="coffeePour">Coffee liqueur per Espresso Martini</label><output data-for="coffeePour"></output></div>
+          <input type="range" id="coffeePour" data-k="coffeePour" min="0.5" max="1" step="0.25">
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Drinks by type</h3>
+        <div id="g-types" class="group"></div>
+        <details>
+          <summary class="note" style="cursor:pointer">Wine and beer splits</summary>
+          <div style="display:grid;gap:12px;margin-top:10px">
+            <div id="g-wine" class="group"></div>
+            <div id="g-beer" class="group"></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="sec">
+        <h3>Spirit drinks</h3>
+        <div id="g-spirits" class="group"></div>
+      </div>
+
+      <div class="sec">
+        <h3>House cocktail base spirit</h3>
+        <label class="mini">Mule variant
+          <select id="muleBase" data-k="muleBase">
+            <option value="vodka">Vodka (Moscow Mule)</option>
+            <option value="bourbon">Bourbon (Kentucky Mule)</option>
+            <option value="gin">Gin (London Mule)</option>
+            <option value="tequila">Tequila (Mexican Mule)</option>
+            <option value="rum">White rum (Rum Buck)</option>
+          </select></label>
+        <label class="mini">Old Fashioned variant
+          <select id="ofBase" data-k="ofBase">
+            <option value="bourbon">Bourbon</option>
+            <option value="rye">Rye (adds a rye bottle)</option>
+          </select></label>
+        <label class="mini">Espresso Martini
+          <select id="emBase" data-k="emBase">
+            <option value="vodka">Vodka</option>
+            <option value="tequila">Tequila</option>
+          </select></label>
+      </div>
+
+      <div class="sec">
+        <h3>Core modifiers (1 bottle each)</h3>
+        <label class="check"><input type="checkbox" id="mod-orange" data-k="modifiers.orange"> Triple sec / orange liqueur</label>
+        <label class="check"><input type="checkbox" id="mod-sweet" data-k="modifiers.sweetVermouth"> Sweet vermouth</label>
+        <label class="check"><input type="checkbox" id="mod-dry" data-k="modifiers.dryVermouth"> Dry vermouth</label>
+        <label class="check"><input type="checkbox" id="mod-campari" data-k="modifiers.campari"> Campari</label>
+        <p class="note">These cover the Margarita, Cosmopolitan, Manhattan, Martini, and Negroni families.</p>
+      </div>
+
+      <div class="sec">
+        <h3>Buffer and extras</h3>
+        <div class="ctl">
+          <div class="ctl-head"><label for="buffer">Safety buffer</label><output data-for="buffer"></output></div>
+          <input type="range" id="buffer" data-k="buffer" min="0" max="35" step="5">
+          <p class="note">Published buffers run 10-25%. Go high only if the store takes back unopened bottles.</p>
+        </div>
+        <label class="check"><input type="checkbox" id="handles" data-k="handles"> Use 1.75L handles where they fit</label>
+        <label class="check"><input type="checkbox" id="toast" data-k="toast"> Add a sparkling toast for every guest</label>
+        <label class="mini">Toast pour
+          <select id="toastOz" data-k="toastOz">
+            <option value="2">2 oz (12 per bottle)</option>
+            <option value="3">3 oz (8 per bottle)</option>
+            <option value="5">5 oz (5 per bottle)</option>
+          </select></label>
+        <div class="ctl">
+          <div class="ctl-head"><label for="ice">Ice per guest</label><output data-for="ice"></output></div>
+          <input type="range" id="ice" data-k="ice" min="1" max="3" step="0.5">
+        </div>
+        <button class="btn" id="reset" type="button">Reset to starting values</button>
+      </div>
+    </aside>
+
+    <main>
+      <section class="block" aria-labelledby="h-sum">
+        <div class="block-head"><h2 id="h-sum">The night in numbers</h2></div>
+        <div class="tiles" id="tiles"></div>
+        <div class="math" id="math"></div>
+        <div class="bar" id="typebar" aria-hidden="true"></div>
+        <div class="legend" id="typelegend"></div>
+      </section>
+
+      <section class="block" aria-labelledby="h-inv">
+        <div class="block-head">
+          <h2 id="h-inv">Bottle inventory</h2>
+          <button class="btn primary" id="copy" type="button">Copy shopping list</button>
+        </div>
+        <div class="tbl"><table>
+          <thead><tr><th>Item</th><th>Buy</th><th class="n">Needed</th><th class="n">On hand</th><th class="n">Headroom</th></tr></thead>
+          <tbody id="inv"></tbody>
+        </table></div>
+        <p class="note">Headroom is the spare volume after rounding up to whole bottles and cases. Wine and spirit volumes use 750ml = 25.4 oz and 1.75L = 59.2 oz.</p>
+      </section>
+
+      <section class="block" aria-labelledby="h-menu">
+        <div class="block-head"><h2 id="h-menu">Drink menu from these bottles</h2></div>
+        <div class="house" id="house"></div>
+        <div class="counts" id="menucounts"></div>
+        <div class="group">
+          <h3>Bottles that unlock the most drinks</h3>
+          <p class="note">Tick one to add a 750ml to the inventory and move its drinks onto the menu. Counts are against the core bottles only. Mixers, juices, syrups, and bitters are not counted as missing. Each card lists the bottles first, then every other ingredient and garnish.</p>
+          <div class="addons" id="addons"></div>
+        </div>
+        <div class="group">
+          <h3>Ready to pour</h3>
+          <div id="ready" style="display:grid;gap:14px"></div>
+        </div>
+        <div class="split">
+          <div class="group"><h3>Missing 1 spirit or liqueur</h3><div class="drinks" id="miss1"></div></div>
+          <div class="group"><h3>Missing 2 spirits or liqueurs</h3><div class="drinks" id="miss2"></div></div>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="h-notes">
+        <h2 id="h-notes">Assumptions</h2>
+        <ul class="plain">
+          <li>One drink = one wine pour, one 12 oz beer, or one cocktail with one base-spirit pour. The Espresso Martini adds coffee liqueur on top of the base pour.</li>
+          <li>Starting drinker rates (light 0.5, moderate 1.0, heavy 1.5 per hour) are planning defaults, not measured data. The starting mix works out to about 0.88 drinks per drinker per hour, inside the 0.75-1.0 band published guides give for lighter crowds.</li>
+          <li>Each spirit-class slider (vodka, gin, rum, tequila, whiskey drinks) uses one base-spirit pour per drink. Triple sec, both vermouths, and Campari are fixed at one 750ml each; the inventory checks that one bottle covers the worst case where every drink in the related classes used it (¾ oz triple sec, 1 oz sweet vermouth, ½ oz dry vermouth, 1 oz Campari).</li>
+          <li>Handles are used only where the remaining volume after full handles exceeds one 750ml. Keep spare bottles unopened and unchilled if you plan to return them, and confirm the store's return policy in writing; some states prohibit alcohol returns.</li>
+          <li>Two bartenders are recommended at this size (one per 50 guests is the common guideline).</li>
+        </ul>
+        <div class="src">
+          <span>Sources for pour sizes and benchmarks:</span>
+          <a href="https://www.niaaa.nih.gov/alcohols-effects-health/what-standard-drink" target="_blank" rel="noopener">NIAAA: What is a standard drink</a>
+          <a href="https://www.zola.com/expert-advice/how-to-calculate-alcohol-needs-for-your-wedding" target="_blank" rel="noopener">Zola: Calculating alcohol for your wedding</a>
+          <a href="https://www.totalwine.com/discover/wedding/alcohol-for-wedding" target="_blank" rel="noopener">Total Wine: Alcohol for a wedding</a>
+          <a href="https://www.makeitadoublellc.com/blog/how-much-alcohol-for-wedding" target="_blank" rel="noopener">Make It A Double: How much alcohol for a wedding</a>
+          <a href="https://iba-world.com/iba-cocktail/moscow-mule/" target="_blank" rel="noopener">IBA cocktail specs</a>
+        </div>
+      </section>
+
+      <details class="block collapse" id="mixwrap">
+        <summary><span><h2 id="h-mix">Mixers, garnish, and ice</h2><span class="note">Not part of the liquor purchase. Expand for quantities if the bar team needs them.</span></span><span class="chev" aria-hidden="true">+</span></summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Item</th><th>Buy</th><th class="n">Volume / count</th><th>Used in</th></tr></thead>
+          <tbody id="mix"></tbody>
+        </table></div>
+        <p class="note">Spirit-class drinks are counted as highball builds with 4 oz of mixer. Vodka drinks split evenly across soda, tonic, and cranberry; gin drinks split between tonic and soda.</p>
+      </details>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+const B750 = 25.36, B175 = 59.17;
+const DEF = {
+  guests:87, nonDrinkers:0,
+  tiers:{low:40, med:45, high:15}, rates:{low:0.5, med:1.0, high:1.5},
+  hours:4.5, firstHour:1,
+  pour:2, winePour:6, coffeePour:0.75,
+  types:{wine:40, beer:30, spirits:30},
+  wineSplit:{red:40, white:40, sparkling:20},
+  beerSplit:{light:60, craft:40},
+  spiritMix:{mule:30, of:20, em:20, vodka:8, gin:7, rum:5, tequila:7, whiskey:3},
+  muleBase:'vodka', ofBase:'bourbon', emBase:'vodka',
+  buffer:10, handles:true, toast:false, toastOz:3, ice:2,
+  modifiers:{orange:true, sweetVermouth:true, dryVermouth:true, campari:true},
+  addons:[]
+};
+/* Core modifiers: one 750ml each. "Needed" is the worst case where every drink in the related spirit classes used it. */
+const MOD = {
+  orange:{oz:0.75, from:['vodka','tequila'], uses:'Margarita, Cosmopolitan, Kamikaze, Lemon Drop, Long Island, White Lady'},
+  sweetVermouth:{oz:1, from:['gin','whiskey'], uses:'Manhattan, Negroni, Boulevardier, Americano; refrigerate after opening'},
+  dryVermouth:{oz:0.5, from:['gin','vodka'], uses:'Martini, Vodka Martini, Perfect Manhattan, El Presidente; refrigerate after opening'},
+  campari:{oz:1, from:['gin','whiskey'], uses:'Negroni, Boulevardier, Americano, Sbagliato, Garibaldi'}
+};
+const MOD_ORDER = ['orange','sweetVermouth','dryVermouth','campari'];
+const clone = o => JSON.parse(JSON.stringify(o));
+function load(){
+  const s = clone(DEF);
+  try{
+    const raw = localStorage.getItem('wedding-bar-planner-v1');
+    if(raw){ const d = JSON.parse(raw);
+      for(const k in s){ if(d[k]===undefined) continue;
+        if(Array.isArray(s[k])) s[k] = Array.isArray(d[k]) ? d[k] : s[k];
+        else if(typeof s[k]==='object'){ for(const j in s[k]) if(d[k] && typeof d[k][j]===typeof s[k][j]) s[k][j]=d[k][j]; }
+        else if(typeof d[k]===typeof s[k]) s[k]=d[k];
+      }
+    }
+  }catch(e){}
+  return s;
+}
+function save(){ try{ localStorage.setItem('wedding-bar-planner-v1', JSON.stringify(S)); }catch(e){} }
+let S = load();
+
+const SP = {
+  vodka:'Vodka', bourbon:'Bourbon', rye:'Rye whiskey', gin:'London dry gin', rum:'White rum', tequila:'Blanco tequila', coffee:'Coffee liqueur',
+  orange:'Triple sec / orange liqueur', lillet:'Lillet Blanc', sweetVermouth:'Sweet vermouth', dryVermouth:'Dry vermouth', campari:'Campari', aperol:'Aperol',
+  darkRum:'Dark / aged rum', irishCream:'Irish cream', irishWhiskey:'Irish whiskey', amaretto:'Amaretto', elderflower:'Elderflower liqueur',
+  chambord:'Raspberry liqueur', galliano:'Galliano', licor43:'Licor 43', cachaca:'Cachaça', pisco:'Pisco', mezcal:'Mezcal',
+  maraschino:'Maraschino liqueur', mure:'Crème de mûre', cassis:'Crème de cassis', scotch:'Scotch', cognac:'Cognac / brandy',
+  nonino:'Amaro Nonino', chartreuse:'Green Chartreuse', violette:'Crème de violette', absinthe:'Absinthe', drambuie:'Drambuie',
+  red:'Red wine', white:'White wine', sparkling:'Sparkling wine', beer:'Beer'
+};
+const ADDON_NOTE = {
+  orange:'Triple sec, Cointreau, or curaçao',
+  sweetVermouth:'Wine-based; refrigerate after opening',
+  dryVermouth:'Wine-based; refrigerate after opening',
+  rye:'Also works in the Old Fashioned and whiskey ginger'
+};
+const SPIRIT_ORDER = ['vodka','bourbon','rye','gin','rum','tequila','coffee'];
+const WINE_BEER = ['red','white','sparkling','beer'];
+
+/* g = menu group, sp = spirits/liqueurs/wine/beer used, o = every other ingredient and garnish */
+const DRINKS = [
+  {n:'Vodka Soda',g:'Vodka',sp:['vodka'],o:'club soda, lime wedge'},
+  {n:'Vodka Tonic',g:'Vodka',sp:['vodka'],o:'tonic water, lime wedge'},
+  {n:'Cape Codder',g:'Vodka',sp:['vodka'],o:'cranberry juice, lime wedge'},
+  {n:'Vodka Gimlet',g:'Vodka',sp:['vodka'],o:'lime juice, simple syrup'},
+  {n:'Caipiroska',g:'Vodka',sp:['vodka'],o:'muddled lime, sugar'},
+  {n:'Screwdriver',g:'Vodka',sp:['vodka'],o:'orange juice'},
+  {n:'Sea Breeze',g:'Vodka',sp:['vodka'],o:'cranberry juice, grapefruit juice, lime wedge'},
+  {n:'Gin & Tonic',g:'Gin',sp:['gin'],o:'tonic water, lime wedge'},
+  {n:'Gin Rickey',g:'Gin',sp:['gin'],o:'lime juice, club soda'},
+  {n:'Gimlet',g:'Gin',sp:['gin'],o:'lime juice, simple syrup'},
+  {n:'London Mule',g:'Gin',sp:['gin'],o:'ginger beer, lime juice'},
+  {n:'Tom Collins',g:'Gin',sp:['gin'],o:'lemon juice, simple syrup, club soda'},
+  {n:"Bee's Knees",g:'Gin',sp:['gin'],o:'lemon juice, honey syrup'},
+  {n:'Southside',g:'Gin',sp:['gin'],o:'lime juice, simple syrup, mint'},
+  {n:'French 75',g:'Gin',sp:['gin','sparkling'],o:'lemon juice, simple syrup'},
+  {n:'Cuba Libre',g:'Rum',sp:['rum'],o:'cola, lime wedge'},
+  {n:'Daiquiri',g:'Rum',sp:['rum'],o:'lime juice, simple syrup'},
+  {n:'Rum Buck',g:'Rum',sp:['rum'],o:'ginger beer, lime juice'},
+  {n:'Mojito',g:'Rum',sp:['rum'],o:'mint, lime juice, simple syrup, club soda'},
+  {n:'Piña Colada',g:'Rum',sp:['rum'],o:'pineapple juice, cream of coconut'},
+  {n:"Tommy's Margarita",g:'Tequila',sp:['tequila'],o:'lime juice, agave nectar'},
+  {n:'Ranch Water',g:'Tequila',sp:['tequila'],o:'lime juice, sparkling mineral water'},
+  {n:'Mexican Mule',g:'Tequila',sp:['tequila'],o:'ginger beer, lime juice'},
+  {n:'Paloma',g:'Tequila',sp:['tequila'],o:'grapefruit soda, lime juice, salt rim'},
+  {n:'Tequila Sunrise',g:'Tequila',sp:['tequila'],o:'orange juice, grenadine'},
+  {n:'Kentucky Mule',g:'Whiskey',sp:['bourbon'],o:'ginger beer, lime juice'},
+  {n:'Bourbon & Coke',g:'Whiskey',sp:['bourbon'],o:'cola'},
+  {n:'Whiskey Sour',g:'Whiskey',sp:['bourbon'],o:'lemon juice, simple syrup, egg white (optional), Angostura'},
+  {n:'Gold Rush',g:'Whiskey',sp:['bourbon'],o:'lemon juice, honey syrup'},
+  {n:'Whiskey Smash',g:'Whiskey',sp:['bourbon'],o:'lemon, mint, simple syrup'},
+  {n:'Mint Julep',g:'Whiskey',sp:['bourbon'],o:'mint, simple syrup, crushed ice'},
+  {n:'New York Sour',g:'Whiskey',sp:['bourbon','red'],o:'lemon juice, simple syrup'},
+  {n:'Black Russian',g:'Coffee',sp:['vodka','coffee'],o:'served over ice'},
+  {n:'White Russian',g:'Coffee',sp:['vodka','coffee'],o:'heavy cream'},
+  {n:'Tequila Espresso Martini',g:'Coffee',sp:['tequila','coffee'],o:'espresso or cold brew, simple syrup'},
+  {n:'Revolver',g:'Coffee',sp:['bourbon','coffee'],o:'orange bitters, orange peel'},
+  {n:'White Wine Spritzer',g:'Wine & beer',sp:['white'],o:'club soda'},
+  {n:'Kalimotxo',g:'Wine & beer',sp:['red'],o:'cola'},
+  {n:'Mimosa',g:'Wine & beer',sp:['sparkling'],o:'orange juice'},
+  {n:'Shandy',g:'Wine & beer',sp:['beer'],o:'lemonade'},
+  {n:'Michelada',g:'Wine & beer',sp:['beer'],o:'lime juice, hot sauce, Worcestershire, Clamato or tomato juice, salt rim'},
+  {n:'Margarita',g:'Tequila',sp:['tequila','orange'],o:'lime juice, salt rim'},
+  {n:'Cosmopolitan',g:'Vodka',sp:['vodka','orange'],o:'cranberry juice, lime juice'},
+  {n:'Kamikaze',g:'Vodka',sp:['vodka','orange'],o:'lime juice'},
+  {n:'Lemon Drop',g:'Vodka',sp:['vodka','orange'],o:'lemon juice, simple syrup, sugar rim'},
+  {n:'Long Island Iced Tea',g:'Other',sp:['vodka','gin','rum','tequila','orange'],o:'lemon juice, simple syrup, cola'},
+  {n:'Manhattan',g:'Whiskey',sp:['bourbon','sweetVermouth'],o:'Angostura, cherry (rye is the traditional base)'},
+  {n:'Martini',g:'Gin',sp:['gin','dryVermouth'],o:'olive or lemon twist'},
+  {n:'Vodka Martini',g:'Vodka',sp:['vodka','dryVermouth'],o:'olive or lemon twist'},
+  {n:'Aperol Spritz',g:'Wine & beer',sp:['sparkling','aperol'],o:'club soda, orange slice'},
+  {n:'Hugo Spritz',g:'Wine & beer',sp:['sparkling','elderflower'],o:'mint, club soda, lime'},
+  {n:'Kir Royale',g:'Wine & beer',sp:['sparkling','cassis']},
+  {n:"Dark 'n' Stormy",g:'Rum',sp:['darkRum'],o:'ginger beer, lime wedge'},
+  {n:'Painkiller',g:'Rum',sp:['darkRum'],o:'pineapple juice, orange juice, cream of coconut, nutmeg'},
+  {n:'Hemingway Daiquiri',g:'Rum',sp:['rum','maraschino'],o:'lime juice, grapefruit juice'},
+  {n:'Mudslide',g:'Coffee',sp:['vodka','coffee','irishCream'],o:'heavy cream'},
+  {n:'Carajillo',g:'Coffee',sp:['licor43'],o:'espresso'},
+  {n:'Irish Coffee',g:'Coffee',sp:['irishWhiskey'],o:'hot coffee, brown sugar, lightly whipped cream'},
+  {n:'Amaretto Sour',g:'Other',sp:['amaretto'],o:'lemon juice, simple syrup, egg white'},
+  {n:'Godmother',g:'Vodka',sp:['vodka','amaretto'],o:'served over ice'},
+  {n:'French Martini',g:'Vodka',sp:['vodka','chambord'],o:'pineapple juice'},
+  {n:'Harvey Wallbanger',g:'Vodka',sp:['vodka','galliano'],o:'orange juice'},
+  {n:'Caipirinha',g:'Other',sp:['cachaca'],o:'muddled lime, sugar'},
+  {n:'Pisco Sour',g:'Other',sp:['pisco'],o:'lime juice, simple syrup, egg white, Angostura'},
+  {n:'Oaxaca Old Fashioned',g:'Tequila',sp:['tequila','mezcal'],o:'agave nectar, Angostura, orange peel (spec calls for reposado tequila)'},
+  {n:'Bramble',g:'Gin',sp:['gin','mure'],o:'lemon juice, simple syrup, crushed ice'},
+  {n:'Rye Old Fashioned',g:'Whiskey',sp:['rye'],o:'simple syrup, Angostura, orange peel'},
+  {n:'Negroni',g:'Gin',sp:['gin','campari','sweetVermouth'],o:'orange peel'},
+  {n:'Boulevardier',g:'Whiskey',sp:['bourbon','campari','sweetVermouth'],o:'orange peel'},
+  {n:'Americano',g:'Aperitivo',sp:['campari','sweetVermouth'],o:'club soda, orange slice'},
+  {n:'Negroni Sbagliato',g:'Aperitivo',sp:['campari','sweetVermouth','sparkling'],o:'orange slice'},
+  {n:'Garibaldi',g:'Aperitivo',sp:['campari'],o:'orange juice'},
+  {n:'Campari Spritz',g:'Aperitivo',sp:['campari','sparkling'],o:'club soda, orange slice'},
+  {n:'Perfect Manhattan',g:'Whiskey',sp:['bourbon','sweetVermouth','dryVermouth'],o:'Angostura, lemon twist'},
+  {n:'Bronx',g:'Gin',sp:['gin','sweetVermouth','dryVermouth'],o:'orange juice'},
+  {n:'White Lady',g:'Gin',sp:['gin','orange'],o:'lemon juice, egg white (optional)'},
+  {n:'El Presidente',g:'Rum',sp:['rum','dryVermouth','orange'],o:'grenadine, orange peel'},
+  {n:'Between the Sheets',g:'Rum',sp:['rum','cognac','orange'],o:'lemon juice'},
+  {n:'Vesper',g:'Gin',sp:['gin','vodka','lillet'],o:'lemon peel'},
+  {n:'Old Pal',g:'Whiskey',sp:['rye','campari','dryVermouth'],o:'lemon twist'},
+  {n:'Martinez',g:'Gin',sp:['gin','sweetVermouth','maraschino'],o:'Angostura or orange bitters, lemon twist'},
+  {n:'Corpse Reviver #2',g:'Gin',sp:['gin','orange','lillet','absinthe'],o:'lemon juice'},
+  {n:'Sidecar',g:'Other',sp:['cognac','orange'],o:'lemon juice, sugar rim'},
+  {n:'Mai Tai',g:'Rum',sp:['darkRum','orange'],o:'lime juice, orgeat, mint'},
+  {n:'Jungle Bird',g:'Rum',sp:['darkRum','campari'],o:'pineapple juice, lime juice, demerara syrup'},
+  {n:'Paper Plane',g:'Whiskey',sp:['bourbon','aperol','nonino'],o:'lemon juice'},
+  {n:'Last Word',g:'Gin',sp:['gin','chartreuse','maraschino'],o:'lime juice'},
+  {n:'Aviation',g:'Gin',sp:['gin','maraschino','violette'],o:'lemon juice'},
+  {n:'Sazerac',g:'Whiskey',sp:['rye','absinthe'],o:"Peychaud's bitters, sugar, lemon peel"},
+  {n:'Rusty Nail',g:'Other',sp:['scotch','drambuie'],o:'served over ice'},
+  {n:'Godfather',g:'Other',sp:['scotch','amaretto'],o:'served over ice'},
+  {n:'Rob Roy',g:'Other',sp:['scotch','sweetVermouth'],o:'Angostura, cherry'},
+  {n:'Sangria',g:'Wine & beer',sp:['red','cognac','orange'],o:'chopped fruit, orange juice, club soda (recipes vary)'}
+];
+const GROUP_ORDER = ['Vodka','Gin','Rum','Tequila','Whiskey','Coffee','Aperitivo','Wine & beer','Other'];
+
+const GROUPS = {
+  tiers:{el:'g-tiers', items:[['low','Light drinkers'],['med','Moderate drinkers'],['high','Heavy drinkers']], unit:'people'},
+  types:{el:'g-types', items:[['wine','Wine'],['beer','Beer'],['spirits','Spirit drinks']], unit:'drinks'},
+  wineSplit:{el:'g-wine', items:[['red','Red'],['white','White'],['sparkling','Sparkling']], unit:'pours'},
+  beerSplit:{el:'g-beer', items:[['light','Light lager'],['craft','Craft / IPA']], unit:'beers'},
+  spiritMix:{el:'g-spirits', items:[['mule','Mule (signature)'],['of','Old Fashioned (signature)'],['em','Espresso Martini (signature)'],['vodka','Vodka drinks'],['gin','Gin drinks'],['rum','Rum drinks'],['tequila','Tequila drinks'],['whiskey','Whiskey drinks']], unit:'drinks'}
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ceil = x => Math.ceil(x - 1e-9);
+const r0 = x => Math.round(x);
+const r1 = x => (Math.round(x*10)/10).toString();
+
+function setLinked(obj, k, v){
+  v = Math.max(0, Math.min(100, Math.round(v)));
+  const others = Object.keys(obj).filter(x => x !== k);
+  const rem = 100 - v;
+  const sum = others.reduce((a,x) => a + obj[x], 0);
+  const raw = others.map(x => sum > 0 ? obj[x]*rem/sum : rem/others.length);
+  const fl = raw.map(Math.floor);
+  let left = rem - fl.reduce((a,b) => a+b, 0);
+  const order = raw.map((x,i) => [x - fl[i], i]).sort((a,b) => b[0]-a[0]);
+  for(let j=0; j<order.length && left>0; j++, left--) fl[order[j][1]]++;
+  obj[k] = v; others.forEach((x,i) => obj[x] = fl[i]);
+}
+
+function buildGroups(){
+  for(const g in GROUPS){
+    const cfg = GROUPS[g], host = $(cfg.el);
+    host.innerHTML = cfg.items.map(([k,label]) =>
+      `<div class="ctl"><div class="ctl-head"><label for="${g}-${k}">${esc(label)}</label><output id="${g}-${k}-o"></output></div>
+       <input type="range" id="${g}-${k}" min="0" max="100" step="1"></div>`).join('');
+    cfg.items.forEach(([k]) => {
+      $(`${g}-${k}`).addEventListener('input', e => {
+        setLinked(S[g], k, +e.target.value);
+        cfg.items.forEach(([kk]) => { $(`${g}-${kk}`).value = S[g][kk]; });
+        update(); save();
+      });
+    });
+  }
+}
+
+function getPath(p){ return p.split('.').reduce((o,k) => o[k], S); }
+function setPath(p, v){ const ks = p.split('.'); const last = ks.pop(); ks.reduce((o,k) => o[k], S)[last] = v; }
+
+function syncInputs(){
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const v = getPath(el.dataset.k);
+    if(el.type === 'checkbox') el.checked = !!v; else el.value = v;
+  });
+  for(const g in GROUPS) GROUPS[g].items.forEach(([k]) => { $(`${g}-${k}`).value = S[g][k]; });
+}
+function bindInputs(){
+  document.querySelectorAll('[data-k]').forEach(el => {
+    const ev = (el.tagName === 'SELECT' || el.type === 'checkbox') ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      let v;
+      if(el.type === 'checkbox') v = el.checked;
+      else if(el.tagName === 'SELECT') v = isNaN(+el.value) ? el.value : +el.value;
+      else { v = parseFloat(el.value); if(isNaN(v)) return; v = Math.max(+el.min || 0, v); }
+      setPath(el.dataset.k, v); update(); save();
+    });
+  });
+}
+
+function buyBottles(oz){
+  if(oz <= 0.01) return {h:0, f:0, oz:0};
+  if(!S.handles) { const f = ceil(oz/B750); return {h:0, f, oz:f*B750}; }
+  let h = Math.floor(oz/B175), rem = oz - h*B175, f = 0;
+  if(rem > 0.01){ if(rem <= B750) f = 1; else h += 1; }
+  return {h, f, oz: h*B175 + f*B750};
+}
+function buyText(b){
+  const p = [];
+  if(b.h) p.push(`${b.h} × 1.75L`);
+  if(b.f) p.push(`${b.f} × 750ml`);
+  return p.join(' + ') || '0';
+}
+
+function compute(){
+  const drinkers = Math.max(0, S.guests - S.nonDrinkers);
+  const rate = (S.tiers.low*S.rates.low + S.tiers.med*S.rates.med + S.tiers.high*S.rates.high)/100;
+  const perDrinker = rate*(Math.min(S.hours,1)*S.firstHour + Math.max(S.hours-1,0));
+  const base = drinkers*perDrinker;
+  const total = base*(1 + S.buffer/100);
+  const t = {wine: total*S.types.wine/100, beer: total*S.types.beer/100, spirits: total*S.types.spirits/100};
+  const sd = {}; for(const k in S.spiritMix) sd[k] = t.spirits*S.spiritMix[k]/100;
+
+  const oz = {}, serves = {};
+  const use = (sp, amt, label) => { if(amt <= 0.01) return; oz[sp] = (oz[sp]||0) + amt; (serves[sp] = serves[sp] || []).push(label); };
+  const muleName = {vodka:'Moscow Mule', bourbon:'Kentucky Mule', gin:'London Mule', tequila:'Mexican Mule', rum:'Rum Buck'}[S.muleBase];
+  use(S.muleBase, sd.mule*S.pour, `${muleName} (signature)`);
+  use(S.ofBase, sd.of*S.pour, 'Old Fashioned (signature)');
+  use(S.emBase, sd.em*S.pour, 'Espresso Martini (signature)');
+  use('coffee', sd.em*S.coffeePour, 'Espresso Martini (signature)');
+  use('vodka', sd.vodka*S.pour, 'vodka drinks');
+  use('gin', sd.gin*S.pour, 'gin drinks');
+  use('rum', sd.rum*S.pour, 'rum drinks');
+  use('tequila', sd.tequila*S.pour, 'tequila drinks');
+  use('bourbon', sd.whiskey*S.pour, 'whiskey drinks');
+
+  const mods = {};
+  for(const k of MOD_ORDER){
+    if(!S.modifiers[k]) continue;
+    const m = MOD[k], drinks = m.from.reduce((a,c) => a + sd[c], 0);
+    mods[k] = {worst: drinks*m.oz, drinks, perBottle: Math.floor(B750/m.oz)};
+  }
+
+  const wine = {};
+  for(const c of ['red','white','sparkling']){
+    const pours = t.wine*S.wineSplit[c]/100, need = pours*S.winePour, b = ceil(need/B750);
+    wine[c] = {pours, need, b, have: b*B750};
+  }
+  const toastNeed = S.toast ? S.guests*S.toastOz : 0;
+  const toastB = ceil(toastNeed/B750);
+  const beer = {};
+  for(const c of ['light','craft']){ const cans = t.beer*S.beerSplit[c]/100; beer[c] = {cans, cases: ceil(cans/24)}; }
+
+  const spirits = {};
+  for(const k in oz) spirits[k] = {need: oz[k], buy: buyBottles(oz[k])};
+
+  const vh = sd.vodka;
+  const mixers = {
+    ginger: (sd.mule + sd.whiskey)*4,
+    tonic: vh/3*4 + sd.gin*2,
+    soda: vh/3*4 + sd.gin*2 + sd.whiskey*0,
+    cran: vh/3*4,
+    cola: sd.rum*4,
+    limeJuice: sd.mule*0.5 + sd.tequila*1 + (S.emBase==='tequila'?0:0),
+    wedges: sd.mule + vh + sd.gin + sd.rum + sd.whiskey,
+    oranges: sd.of/6, cherries: sd.of, beans: sd.em*3, coldbrew: sd.em*1,
+    simple: sd.em*0.33 + sd.of*0.25 + sd.tequila*0.75,
+    dashes: sd.of*3, ice: S.guests*S.ice
+  };
+  return {drinkers, rate, perDrinker, base, total, t, sd, spirits, serves, wine, toastB, toastNeed, beer, mixers, muleName, mods};
+}
+
+let last = null;
+function update(){
+  const R = compute(); last = R;
+
+  /* outputs beside dials */
+  $('o-drinkers').textContent = `${R.drinkers}`;
+  $('o-rate').textContent = `${R.rate.toFixed(2)} drinks / hr`;
+  const fmt = {hours: v => `${v} hr`, firstHour: v => `${(+v).toFixed(2)}×`, pour: v => `${v} oz`, winePour: v => `${v} oz`, coffeePour: v => `${v} oz`, buffer: v => `${v}%`, ice: v => `${v} lb`};
+  document.querySelectorAll('output[data-for]').forEach(o => { const k = o.dataset.for; o.textContent = fmt[k] ? fmt[k](S[k]) : S[k]; });
+  const groupCounts = {
+    tiers: k => r0(R.drinkers*S.tiers[k]/100),
+    types: k => r0(R.t[k]),
+    wineSplit: k => r0(R.wine[k].pours),
+    beerSplit: k => r0(R.beer[k].cans),
+    spiritMix: k => r0(R.sd[k])
+  };
+  for(const g in GROUPS) GROUPS[g].items.forEach(([k]) => {
+    $(`${g}-${k}-o`).innerHTML = `${S[g][k]}% <span class="sub">· ${groupCounts[g](k)} ${GROUPS[g].unit}</span>`;
+  });
+
+  /* tiles */
+  const wineB = R.wine.red.b + R.wine.white.b + R.wine.sparkling.b;
+  const cases = R.beer.light.cases + R.beer.craft.cases;
+  let spB = 0, spH = 0; for(const k in R.spirits){ spB += R.spirits[k].buy.f; spH += R.spirits[k].buy.h; }
+  const addOnly = S.addons.filter(k => !R.spirits[k] && !R.mods[k]).length + Object.keys(R.mods).length;
+  $('tiles').innerHTML = [
+    ['Drinks to plan for', r0(R.total), `incl. ${S.buffer}% buffer`],
+    ['Per drinker', R.perDrinker.toFixed(1), `over ${S.hours} hours`],
+    ['Wine bottles', wineB + R.toastB, R.toastB ? `incl. ${R.toastB} for the toast` : '750ml'],
+    ['Beer cases', cases, `${cases*24} cans`],
+    ['Spirit bottles', spB + spH + addOnly, `${spH} handles · ${spB + addOnly} × 750ml`]
+  ].map(([k,v,s]) => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join('');
+
+  $('math').textContent = `${R.drinkers} drinkers × ${R.rate.toFixed(2)}/hr × ${S.hours} hr` +
+    (S.firstHour > 1 ? ` (first hour × ${S.firstHour})` : '') +
+    ` = ${r0(R.base)} drinks  →  + ${S.buffer}% buffer = ${r0(R.total)}  →  wine ${r0(R.t.wine)} · beer ${r0(R.t.beer)} · spirit drinks ${r0(R.t.spirits)}`;
+
+  const segs = [['wine','Wine','var(--wine)'],['beer','Beer','var(--beer)'],['spirits','Spirits','var(--spirit)']];
+  $('typebar').innerHTML = segs.map(([k,l,c]) => `<span style="flex:0 0 ${S.types[k]}%;background:${c}">${S.types[k] >= 12 ? l+' '+S.types[k]+'%' : ''}</span>`).join('');
+  $('typelegend').innerHTML = segs.map(([k,l,c]) => `<span><i style="background:${c}"></i>${l}: ${r0(R.t[k])} drinks</span>`).join('');
+
+  /* inventory */
+  const rows = [];
+  const head = t => rows.push(`<tr class="cat"><td colspan="5">${t}</td></tr>`);
+  const hr = (need, have) => {
+    if(need <= 0.01) return '';
+    const p = (have - need)/need*100;
+    return `<span class="pill ${p < 8 ? 'warn' : 'ok'}">+${r0(p)}%</span>`;
+  };
+  head('Wine');
+  const wineServes = {red:'Red by the glass; New York Sour float; Kalimotxo', white:'White by the glass; spritzer', sparkling:'Bubbles by the glass; French 75; Mimosa'};
+  for(const c of ['red','white','sparkling']){
+    const w = R.wine[c]; if(w.b === 0) continue;
+    rows.push(`<tr><td><span class="dot" style="background:var(--wine)"></span>${SP[c]}<span class="serves">${r0(w.pours)} pours at ${S.winePour} oz · ${wineServes[c]}</span></td><td class="buy">${w.b} × 750ml</td><td class="n">${r0(w.need)} oz</td><td class="n">${r0(w.have)} oz</td><td class="n">${hr(w.need, w.have)}</td></tr>`);
+  }
+  if(R.toastB) rows.push(`<tr><td><span class="dot" style="background:var(--wine)"></span>Sparkling for the toast<span class="serves">${S.guests} guests at ${S.toastOz} oz</span></td><td class="buy">${R.toastB} × 750ml</td><td class="n">${r0(R.toastNeed)} oz</td><td class="n">${r0(R.toastB*B750)} oz</td><td class="n">${hr(R.toastNeed, R.toastB*B750)}</td></tr>`);
+  head('Beer');
+  const beerLbl = {light:'Light lager', craft:'Craft / IPA'};
+  for(const c of ['light','craft']){
+    const b = R.beer[c]; if(b.cases === 0) continue;
+    rows.push(`<tr><td><span class="dot" style="background:var(--beer)"></span>${beerLbl[c]}<span class="serves">12 oz cans or bottles</span></td><td class="buy">${b.cases} × 24-pack</td><td class="n">${r0(b.cans)}</td><td class="n">${b.cases*24}</td><td class="n">${hr(b.cans, b.cases*24)}</td></tr>`);
+  }
+  head('Spirits and liqueurs');
+  const keys = Object.keys(R.spirits).sort((a,b) => SPIRIT_ORDER.indexOf(a) - SPIRIT_ORDER.indexOf(b));
+  for(const k of keys){
+    const s = R.spirits[k];
+    const sv = [...new Set(R.serves[k])].join('; ');
+    rows.push(`<tr><td><span class="dot" style="background:var(--spirit)"></span>${SP[k]}<span class="serves">${esc(sv)}</span></td><td class="buy">${buyText(s.buy)}</td><td class="n">${r0(s.need)} oz</td><td class="n">${r0(s.buy.oz)} oz</td><td class="n">${hr(s.need, s.buy.oz)}</td></tr>`);
+  }
+  const modKeys = Object.keys(R.mods);
+  if(modKeys.length) head('Modifiers (one bottle each)');
+  for(const k of modKeys){
+    const m = R.mods[k], cfg = MOD[k];
+    const cls = cfg.from.map(c => c === 'whiskey' ? 'whiskey' : c).join(' + ');
+    rows.push(`<tr><td><span class="dot" style="background:var(--spirit)"></span>${SP[k]}<span class="serves">${cfg.oz} oz per drink · ~${m.perBottle} drinks per bottle · ${esc(cfg.uses)}. Needed assumes all ${r0(m.drinks)} ${cls} drinks used it.</span></td><td class="buy">1 × 750ml</td><td class="n">≤ ${r0(m.worst)} oz</td><td class="n">25 oz</td><td class="n">${m.worst > 0.01 ? hr(m.worst, B750) : ''}</td></tr>`);
+  }
+  const addRows = S.addons.filter(k => !R.spirits[k] && !R.mods[k]);
+  if(addRows.length){
+    head('Add-on bottles (from the menu section)');
+    for(const k of addRows){
+      const un = DRINKS.filter(d => d.sp.includes(k)).map(d => d.n);
+      rows.push(`<tr><td><span class="dot" style="background:var(--ok)"></span>${SP[k]}<span class="serves">For ${esc(un.slice(0,5).join(', '))}${un.length > 5 ? '…' : ''}</span></td><td class="buy">1 × 750ml</td><td class="n">add-on</td><td class="n">25 oz</td><td class="n"></td></tr>`);
+    }
+  }
+  $('inv').innerHTML = rows.join('');
+
+  /* mixers */
+  const M = R.mixers;
+  const mrow = (item, buy, vol, used) => `<tr><td>${item}</td><td class="buy">${buy}</td><td class="n">${vol}</td><td><span class="serves" style="font-size:13px">${used}</span></td></tr>`;
+  const limes = ceil(M.limeJuice/1 + M.wedges/8);
+  const mx = [];
+  if(M.ginger > 0.01) mx.push(mrow('Ginger beer', `${ceil(M.ginger/12)} × 12 oz`, `${r0(M.ginger)} oz`, `Signature mule, whiskey drinks; 4 oz each. Add a few for non-alcoholic mules.`));
+  if(M.tonic > 0.01) mx.push(mrow('Tonic water', `${ceil(M.tonic/33.8)} × 1L`, `${r0(M.tonic)} oz`, 'Vodka tonic, gin & tonic'));
+  if(M.soda > 0.01) mx.push(mrow('Club soda', `${ceil(M.soda/33.8)} × 1L`, `${r0(M.soda)} oz`, 'Vodka soda, gin soda, spritzers'));
+  if(M.cran > 0.01) mx.push(mrow('Cranberry juice', `${ceil(M.cran/64)} × 64 oz`, `${r0(M.cran)} oz`, 'Vodka cran'));
+  if(M.cola > 0.01) mx.push(mrow('Cola', `${ceil(M.cola/67.6)} × 2L`, `${r0(M.cola)} oz`, 'Rum & coke; add 1 diet 2L for guests'));
+  if(M.coldbrew > 0.01) mx.push(mrow('Cold brew concentrate or espresso', `${ceil(M.coldbrew/32)} × 32 oz`, `${r0(M.coldbrew)} oz`, 'Espresso Martini; 1 oz each, chilled'));
+  if(M.simple > 0.01) mx.push(mrow('Simple syrup (1:1)', `${ceil(M.simple/25)} × 25 oz`, `${r0(M.simple)} oz`, "Espresso Martini ⅓ oz, Old Fashioned ¼ oz, tequila drinks ¾ oz"));
+  if(M.dashes > 0.01) mx.push(mrow('Angostura aromatic bitters', `${Math.max(1, ceil(M.dashes/120))} × 4 oz`, `${r0(M.dashes)} dashes`, 'Old Fashioned, 3 dashes each; about 120 dashes per 4 oz bottle'));
+  if(limes > 0) mx.push(mrow('Limes', `${limes}`, `${r0(M.limeJuice)} oz juice · ${r0(M.wedges)} wedges`, '~1 oz juice per lime; ~8 wedges per lime'));
+  if(M.oranges > 0.01) mx.push(mrow('Oranges', `${ceil(M.oranges)}`, `${r0(R.sd.of)} peels`, 'Old Fashioned peel; ~6 peels per orange'));
+  if(M.cherries > 0.01) mx.push(mrow('Cocktail cherries', `${r0(M.cherries)} cherries`, `${r0(M.cherries)}`, 'One per Old Fashioned'));
+  if(M.beans > 0.01) mx.push(mrow('Whole coffee beans', '1 small bag', `${r0(M.beans)} beans`, 'Three per Espresso Martini'));
+  mx.push(mrow('Ice', `${ceil(M.ice/10)} × 10 lb bags`, `${r0(M.ice)} lb`, 'Drinks plus chilling beer and wine in tubs; buy the morning of'));
+  $('mix').innerHTML = mx.join('');
+
+  renderMenu(R);
+}
+
+function renderMenu(R){
+  /* house cocktails */
+  const p = S.pour;
+  const house = [
+    {n: R.muleName, spec:`${p} oz ${SP[S.muleBase].toLowerCase()} · 4 oz ginger beer · ½ oz lime`, c: R.sd.mule},
+    {n: (S.ofBase === 'rye' ? 'Rye ' : '') + 'Old Fashioned', spec:`${p} oz ${SP[S.ofBase].toLowerCase()} · ¼ oz simple · 3 dashes Angostura · orange peel`, c: R.sd.of},
+    {n: (S.emBase === 'tequila' ? 'Tequila ' : '') + 'Espresso Martini', spec:`${p} oz ${SP[S.emBase].toLowerCase()} · ${S.coffeePour} oz coffee liqueur · 1 oz cold brew · ⅓ oz simple`, c: R.sd.em}
+  ];
+  $('house').innerHTML = house.map(h => `<div class="hcard"><div class="eyebrow">Signature</div><div class="nm">${esc(h.n)}</div><div class="spec">${esc(h.spec)}</div><div class="cnt">~${r0(h.c)} served</div></div>`).join('');
+
+  /* what is stocked */
+  const core = new Set([...Object.keys(R.spirits), ...Object.keys(R.mods)]);
+  if(R.wine.red.b) core.add('red');
+  if(R.wine.white.b) core.add('white');
+  if(R.wine.sparkling.b || R.toastB) core.add('sparkling');
+  if(R.beer.light.cases + R.beer.craft.cases) core.add('beer');
+  const avail = new Set([...core, ...S.addons]);
+  const missingOf = (d, set) => d.sp.filter(k => !set.has(k));
+
+  /* add-on candidates: keys used by drinks that the core bottles don't cover */
+  const cand = {};
+  DRINKS.forEach(d => {
+    const m = missingOf(d, core);
+    m.forEach(k => {
+      if(WINE_BEER.includes(k)) return;
+      cand[k] = cand[k] || {u:0, p:0};
+      if(m.length === 1) cand[k].u++; else if(m.length === 2) cand[k].p++;
+    });
+  });
+  const list = Object.entries(cand).filter(([,v]) => v.u + v.p > 0).sort((a,b) => b[1].u - a[1].u || b[1].p - a[1].p || SP[a[0]].localeCompare(SP[b[0]]));
+  $('addons').innerHTML = list.map(([k,v]) => {
+    const on = S.addons.includes(k);
+    const note = ADDON_NOTE[k] ? ` · ${ADDON_NOTE[k]}` : '';
+    return `<label class="addon${on ? ' on' : ''}"><input type="checkbox" id="addon-${k}" data-addon="${k}"${on ? ' checked' : ''}>
+      <span><span class="t">${esc(SP[k])}</span><br><span class="u">Unlocks ${v.u}${v.p ? ` · half of ${v.p} more` : ''}${esc(note)}</span></span></label>`;
+  }).join('') || '<p class="empty">Every listed drink is covered.</p>';
+  document.querySelectorAll('[data-addon]').forEach(el => el.addEventListener('change', () => {
+    const k = el.dataset.addon;
+    S.addons = el.checked ? [...new Set([...S.addons, k])] : S.addons.filter(x => x !== k);
+    update(); save();
+  }));
+
+  /* buckets */
+  const b0 = [], b1 = [], b2 = [];
+  DRINKS.forEach(d => {
+    const m = missingOf(d, avail);
+    if(m.length === 0) b0.push(d); else if(m.length === 1) b1.push([d,m]); else if(m.length === 2) b2.push([d,m]);
+  });
+  const chips = (d, m) => d.sp.map(k => {
+    const cls = m.includes(k) ? 'chip miss' : (S.addons.includes(k) && !core.has(k) ? 'chip add' : 'chip');
+    return `<span class="${cls}">${esc(SP[k])}</span>`;
+  }).join('');
+  const card = (d, m=[]) => `<div class="drink"><div class="nm">${esc(d.n)}</div><div class="chips">${chips(d,m)}</div>${d.o ? `<div class="ing"><span class="ing-k">With</span> ${esc(d.o)}</div>` : ''}</div>`;
+
+  $('menucounts').innerHTML = `<span class="pill ok">${b0.length + 3} ready to pour (incl. 3 signatures)</span><span class="pill warn">${b1.length} missing 1 bottle</span><span class="pill neutral">${b2.length} missing 2 bottles</span>`;
+
+  const byG = {}; b0.forEach(d => (byG[d.g] = byG[d.g] || []).push(d));
+  $('ready').innerHTML = GROUP_ORDER.filter(g => byG[g]).map(g =>
+    `<div class="group"><h3 style="text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--ink)">${esc(g)} <span class="sum-tag">${byG[g].length}</span></h3><div class="drinks">${byG[g].map(d => card(d)).join('')}</div></div>`).join('');
+  const sortN = (a,b) => a[0].n.localeCompare(b[0].n);
+  $('miss1').innerHTML = b1.sort(sortN).map(([d,m]) => card(d,m)).join('') || '<p class="empty">None.</p>';
+  $('miss2').innerHTML = b2.sort(sortN).map(([d,m]) => card(d,m)).join('') || '<p class="empty">None.</p>';
+}
+
+/* shopping list copy */
+$('copy').addEventListener('click', () => {
+  const R = last; const L = [];
+  L.push(`WEDDING BAR LIQUOR LIST (${S.guests} guests, ${R.drinkers} drinking, ${S.hours} hr, ~${r0(R.total)} drinks incl. ${S.buffer}% buffer)`);
+  L.push('', 'WINE');
+  ['red','white','sparkling'].forEach(c => { if(R.wine[c].b) L.push(`- ${SP[c]}: ${R.wine[c].b} x 750ml`); });
+  if(R.toastB) L.push(`- Sparkling for toast: ${R.toastB} x 750ml`);
+  L.push('', 'BEER');
+  if(R.beer.light.cases) L.push(`- Light lager: ${R.beer.light.cases} x 24-pack`);
+  if(R.beer.craft.cases) L.push(`- Craft / IPA: ${R.beer.craft.cases} x 24-pack`);
+  L.push('', 'SPIRITS AND LIQUEURS');
+  Object.keys(R.spirits).sort((a,b) => SPIRIT_ORDER.indexOf(a) - SPIRIT_ORDER.indexOf(b)).forEach(k => L.push(`- ${SP[k]}: ${buyText(R.spirits[k].buy).replace(/×/g,'x')}`));
+  if(Object.keys(R.mods).length) L.push('', 'MODIFIERS');
+  Object.keys(R.mods).forEach(k => L.push(`- ${SP[k]}: 1 x 750ml`));
+  const adds = S.addons.filter(k => !R.spirits[k] && !R.mods[k]);
+  if(adds.length){ L.push('', 'ADD-ONS'); adds.forEach(k => L.push(`- ${SP[k]}: 1 x 750ml`)); }
+  const text = L.join('\n');
+  const btn = $('copy');
+  const done = ok => { btn.textContent = ok ? 'Copied' : 'Select and copy below'; setTimeout(() => btn.textContent = 'Copy shopping list', 1800); };
+  try{
+    navigator.clipboard.writeText(text).then(() => done(true), () => fallback());
+  }catch(e){ fallback(); }
+  function fallback(){
+    let ta = $('copy-fallback');
+    if(!ta){ ta = document.createElement('textarea'); ta.id = 'copy-fallback'; ta.rows = 12; ta.style.cssText = 'width:100%;font-family:var(--mono);font-size:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px'; btn.closest('.block').appendChild(ta); }
+    ta.value = text; ta.focus(); ta.select();
+    let ok = false;
+    try{ ok = document.execCommand('copy'); }catch(e){}
+    done(ok);
+  }
+});
+
+$('reset').addEventListener('click', () => { S = clone(DEF); syncInputs(); update(); save(); });
+
+buildGroups(); bindInputs(); syncInputs(); update();
+})();
+</script>
+</body>
+</html>
