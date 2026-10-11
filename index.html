@@ -165,8 +165,12 @@ details.collapse[open] summary{margin-bottom:14px}
   aside.controls,#mixwrap,#copy,#copy-fallback,.toolbar,header p,.dot,
   section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
   .wrap{max-width:none;padding:0}
-  .layout{display:block}
-  main{gap:20px}
+  /* block flow instead of grid: grids that span a page break can overlap their rows */
+  .layout,main,.block,.group,.split,#ready{display:block!important}
+  .block{margin-bottom:26px}
+  .block > * + *,.group > * + *,#ready > * + *{margin-top:10px}
+  .split > * + *{margin-top:18px}
+  .group:has(#addons){display:none!important}
   .tbl{overflow:visible}
   table{min-width:0}
   .pill,.chip{border:1px solid var(--line)}
