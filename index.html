@@ -48,9 +48,13 @@ img{max-width:100%}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:28px 72px}
-header{display:grid;gap:6px;margin-bottom:22px}
-.head-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.head-row .btn{flex:none;font-size:12.5px;padding:5px 10px}
+header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;margin-bottom:22px}
+header .eyebrow{white-space:nowrap}
+header h1{grid-column:1}
+header p{grid-column:1 / -1}
+.head-actions{grid-column:2;grid-row:1 / span 2;align-self:start;display:flex;gap:8px}
+.head-actions .btn{font-size:12.5px;padding:5px 10px}
+@media (max-width:640px){.head-actions{grid-column:1 / -1;grid-row:auto;order:1;margin-top:6px}}
 .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,4.5vw,2.9rem);line-height:1.05;margin:0;text-wrap:balance}
 header p{margin:0;color:var(--muted);max-width:68ch}
@@ -58,6 +62,7 @@ h2{font-family:var(--display);font-weight:700;font-size:1.55rem;margin:0;line-he
 h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
 .layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:920px){.layout{grid-template-columns:minmax(0,1fr)}}
+.layout.rail-hidden{grid-template-columns:minmax(0,1fr)}
 
 /* Controls */
 aside.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
@@ -158,7 +163,7 @@ details.collapse[open] summary{margin-bottom:14px}
     --wine:#000000; --beer:#000000; --spirit:#000000;
     --ok:#000000; --ok-soft:#FFFFFF; --warn:#000000; --warn-soft:#FFFFFF; color-scheme:light;
   }
-  aside.controls,#mixwrap,#copy,#copy-fallback,#theme,header p,.dot,
+  aside.controls,#mixwrap,#copy,#copy-fallback,.head-actions,header p,.dot,
   section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
   .wrap{max-width:none;padding:0}
   .layout{display:block}
@@ -175,8 +180,9 @@ details.collapse[open] summary{margin-bottom:14px}
 <body>
 <div class="wrap">
   <header>
-    <div class="head-row">
-      <div class="eyebrow">Reception bar · self-purchased bottles</div>
+    <div class="eyebrow">Reception bar · self-purchased bottles</div>
+    <div class="head-actions">
+      <button class="btn" id="rail" type="button" aria-controls="controls" aria-expanded="true">Hide controls</button>
       <button class="btn" id="theme" type="button">Dark mode</button>
     </div>
     <h1>Wedding Bar Planner</h1>
@@ -184,7 +190,7 @@ details.collapse[open] summary{margin-bottom:14px}
   </header>
 
   <div class="layout">
-    <aside class="controls" aria-label="Planning dials">
+    <aside class="controls" id="controls" aria-label="Planning dials">
       <div class="sec">
         <h3>Guests</h3>
         <div class="row2">
@@ -893,6 +899,20 @@ $('theme').addEventListener('click', () => {
   syncTheme();
 });
 mq.addEventListener('change', syncTheme);
+
+/* controls rail: collapse to give the results the full width, remembered per browser */
+function setRail(hidden){
+  $('controls').hidden = hidden;
+  document.querySelector('.layout').classList.toggle('rail-hidden', hidden);
+  $('rail').textContent = hidden ? 'Show controls' : 'Hide controls';
+  $('rail').setAttribute('aria-expanded', String(!hidden));
+}
+$('rail').addEventListener('click', () => {
+  const hidden = !$('controls').hidden;
+  setRail(hidden);
+  try{ localStorage.setItem('wedding-bar-planner-rail', hidden ? 'hidden' : 'shown'); }catch(e){}
+});
+try{ if(localStorage.getItem('wedding-bar-planner-rail') === 'hidden') setRail(true); }catch(e){}
 
 buildGroups(); bindInputs(); syncInputs(); update(); syncTheme();
 })();
