@@ -32,6 +32,7 @@ img{max-width:100%}
   --display:"Bodoni Moda","Didot",Georgia,serif;
   --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --bar:48px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0E1417; --surface:#151D22; --sunk:#1D272D; --ink:#E4EBEE; --muted:#93A4AD; --line:#2A363D;
@@ -48,25 +49,22 @@ img{max-width:100%}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
 .wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:28px 72px}
-header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;margin-bottom:22px}
-header .eyebrow{white-space:nowrap}
-header h1{grid-column:1}
-header p{grid-column:1 / -1}
-.head-actions{grid-column:2;grid-row:1 / span 2;align-self:start;display:flex;gap:8px}
-.head-actions .btn{font-size:12.5px;padding:5px 10px}
-@media (max-width:640px){.head-actions{grid-column:1 / -1;grid-row:auto;order:1;margin-top:6px}}
+header{display:grid;gap:6px;margin-bottom:8px}
 .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header .eyebrow{white-space:nowrap}
 h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,4.5vw,2.9rem);line-height:1.05;margin:0;text-wrap:balance}
 header p{margin:0;color:var(--muted);max-width:68ch}
+/* Sticky toolbar: stays reachable while scrolling and sits above the content instead of floating over it */
+.toolbar{position:sticky;top:0;z-index:5;height:var(--bar);display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 -20px 16px;padding-inline:20px;background:var(--bg);border-bottom:1px solid var(--line)}
+.toolbar .btn{font-size:12.5px;padding:5px 10px}
 h2{font-family:var(--display);font-weight:700;font-size:1.55rem;margin:0;line-height:1.15}
 h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
 .layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:920px){.layout{grid-template-columns:minmax(0,1fr)}}
 .layout.rail-hidden{grid-template-columns:minmax(0,1fr)}
-#rail-float{position:fixed;z-index:5;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);border-color:var(--accent)}
 
 /* Controls */
-aside.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
+aside.controls{position:sticky;top:calc(var(--bar) + 12px);max-height:calc(100vh - var(--bar) - 24px);scroll-margin-top:calc(var(--bar) + 8px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
 @media (max-width:920px){aside.controls{position:static;max-height:none}}
 .sec{display:grid;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line)}
 .sec:last-child{border-bottom:0;padding-bottom:0}
@@ -164,7 +162,7 @@ details.collapse[open] summary{margin-bottom:14px}
     --wine:#000000; --beer:#000000; --spirit:#000000;
     --ok:#000000; --ok-soft:#FFFFFF; --warn:#000000; --warn-soft:#FFFFFF; color-scheme:light;
   }
-  aside.controls,#mixwrap,#copy,#copy-fallback,.head-actions,#rail-float,header p,.dot,
+  aside.controls,#mixwrap,#copy,#copy-fallback,.toolbar,header p,.dot,
   section[aria-labelledby="h-sum"],section[aria-labelledby="h-notes"]{display:none!important}
   .wrap{max-width:none;padding:0}
   .layout{display:block}
@@ -182,13 +180,13 @@ details.collapse[open] summary{margin-bottom:14px}
 <div class="wrap">
   <header>
     <div class="eyebrow">Reception bar · self-purchased bottles</div>
-    <div class="head-actions">
-      <button class="btn" id="rail" type="button" aria-controls="controls" aria-expanded="true">Hide controls</button>
-      <button class="btn" id="theme" type="button">Dark mode</button>
-    </div>
     <h1>Wedding Bar Planner</h1>
     <p>Dial in the crowd, the clock, and the drink mix. Bottle counts, mixers, and the cocktail menu update as you go. Starting values: 87 guests, a moderate-to-low drinking crowd, 2 oz liquor pours, 6 oz wine pours.</p>
   </header>
+  <div class="toolbar">
+    <button class="btn" id="rail" type="button" aria-controls="controls" aria-expanded="true">Hide controls</button>
+    <button class="btn" id="theme" type="button">Dark mode</button>
+  </div>
 
   <div class="layout">
     <aside class="controls" id="controls" aria-label="Planning dials">
@@ -384,7 +382,6 @@ details.collapse[open] summary{margin-bottom:14px}
     </main>
   </div>
 </div>
-<button class="btn" id="rail-float" type="button" aria-controls="controls" aria-expanded="true" hidden>Hide controls</button>
 
 <script>
 (function(){
@@ -906,10 +903,8 @@ mq.addEventListener('change', syncTheme);
 function setRail(hidden){
   $('controls').hidden = hidden;
   document.querySelector('.layout').classList.toggle('rail-hidden', hidden);
-  ['rail','rail-float'].forEach(id => {
-    $(id).textContent = hidden ? 'Show controls' : 'Hide controls';
-    $(id).setAttribute('aria-expanded', String(!hidden));
-  });
+  $('rail').textContent = hidden ? 'Show controls' : 'Hide controls';
+  $('rail').setAttribute('aria-expanded', String(!hidden));
 }
 function toggleRail(){
   const hidden = !$('controls').hidden;
@@ -925,11 +920,6 @@ function toggleRail(){
   try{ localStorage.setItem('wedding-bar-planner-rail', hidden ? 'hidden' : 'shown'); }catch(e){}
 }
 $('rail').addEventListener('click', toggleRail);
-$('rail-float').addEventListener('click', toggleRail);
-/* the floating copy of the button appears once the header buttons scroll out of view */
-if('IntersectionObserver' in window){
-  new IntersectionObserver(es => { $('rail-float').hidden = es[0].isIntersecting; }).observe(document.querySelector('.head-actions'));
-}
 try{ if(localStorage.getItem('wedding-bar-planner-rail') === 'hidden') setRail(true); }catch(e){}
 
 buildGroups(); bindInputs(); syncInputs(); update(); syncTheme();
